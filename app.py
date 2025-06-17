@@ -1,4 +1,4 @@
-# Fixed FastAPI code
+# Updated FastAPI code for MobileNetV3
 from fastapi import FastAPI, File, UploadFile
 from fastapi.responses import JSONResponse, FileResponse
 import torch
@@ -11,7 +11,7 @@ import os
 import uuid
 from pathlib import Path
 
-from model import RSGNet
+from model import MobileNetDR  # Changed import
 from torchcam.methods import GradCAM
 from torchvision.transforms.functional import to_pil_image
 
@@ -23,11 +23,11 @@ OUTPUT_DIR.mkdir(exist_ok=True)
 
 # Load model
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model = RSGNet()
+model = MobileNetDR()  # Changed model initialization
 
 # Add error handling for model loading
 try:
-    model.load_state_dict(torch.load("rsgnet_weights.pth", map_location=device))
+    model.load_state_dict(torch.load("mobilenet_dr_weights.pth", map_location=device))  # Updated weight file name
     print("Model weights loaded successfully")
 except FileNotFoundError:
     print("Warning: Model weights file not found. Using random weights.")
@@ -37,14 +37,14 @@ except Exception as e:
 model.to(device)
 model.eval()
 
-# Grad-CAM setup (targeting conv4)
-cam_extractor = GradCAM(model, target_layer=model.conv4)
+# Grad-CAM setup (targeting the final conv layer in MobileNetV3)
+cam_extractor = GradCAM(model, target_layer='model.features.12.0')  # Updated target layer
 
 # Image preprocessing
 preprocess = transforms.Compose([
     transforms.Resize((224, 224)),
     transforms.ToTensor(),
-    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])  # Added normalization
+    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])  # Standard ImageNet normalization
 ])
 
 # Store generated files temporarily
